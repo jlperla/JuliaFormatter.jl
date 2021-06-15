@@ -105,7 +105,7 @@ mutable struct FST
     indent::Int
     len::Int
     val::Union{Nothing,AbstractString}
-    nodes::Union{Nothing,Vector{FST}}
+    nodes::Vector{FST}
     ref::Union{Nothing,Ref{CSTParser.EXPR}}
     nest_behavior::NestBehavior
 
@@ -141,7 +141,7 @@ function FST(
         0,
         length(val),
         val,
-        nothing,
+				FST[],
         Ref(cst),
         AllowNest,
         0,
@@ -164,7 +164,7 @@ function FST(
         0,
         length(val),
         val,
-        nothing,
+				FST[],
         nothing,
         AllowNest,
         0,
@@ -195,14 +195,20 @@ end
     return
 end
 
+@inline function Base.push!(fst::FST, node::FST)
+    push!(fst.nodes, node)
+    fst.len += node.len
+    return
+end
+
 @inline Newline(; length = 0, nest_behavior = AllowNest) =
-    FST(NEWLINE, -1, -1, 0, length, "\n", nothing, nothing, nest_behavior, 0, -1, nothing)
+FST(NEWLINE, -1, -1, 0, length, "\n", FST[], nothing, nest_behavior, 0, -1, nothing)
 @inline Semicolon() =
-    FST(SEMICOLON, -1, -1, 0, 1, ";", nothing, nothing, AllowNest, 0, -1, nothing)
+FST(SEMICOLON, -1, -1, 0, 1, ";", FST[], nothing, AllowNest, 0, -1, nothing)
 @inline TrailingComma() =
-    FST(TRAILINGCOMMA, -1, -1, 0, 0, "", nothing, nothing, AllowNest, 0, -1, nothing)
+FST(TRAILINGCOMMA, -1, -1, 0, 0, "", FST[], nothing, AllowNest, 0, -1, nothing)
 @inline TrailingSemicolon() =
-    FST(TRAILINGSEMICOLON, -1, -1, 0, 0, "", nothing, nothing, AllowNest, 0, -1, nothing)
+FST(TRAILINGSEMICOLON, -1, -1, 0, 0, "", FST[], nothing, AllowNest, 0, -1, nothing)
 @inline InverseTrailingSemicolon() = FST(
     INVERSETRAILINGSEMICOLON,
     -1,
@@ -210,7 +216,7 @@ end
     0,
     1,
     ";",
-    nothing,
+		FST[],
     nothing,
     AllowNest,
     0,
@@ -218,20 +224,20 @@ end
     nothing,
 )
 @inline Whitespace(n) =
-    FST(WHITESPACE, -1, -1, 0, n, " "^n, nothing, nothing, AllowNest, 0, -1, nothing)
+FST(WHITESPACE, -1, -1, 0, n, " "^n, FST[], nothing, AllowNest, 0, -1, nothing)
 @inline Placeholder(n) =
-    FST(PLACEHOLDER, -1, -1, 0, n, " "^n, nothing, nothing, AllowNest, 0, -1, nothing)
+FST(PLACEHOLDER, -1, -1, 0, n, " "^n, FST[], nothing, AllowNest, 0, -1, nothing)
 @inline Notcode(startline, endline) =
-    FST(NOTCODE, startline, endline, 0, 0, "", nothing, nothing, AllowNest, 0, -1, nothing)
+FST(NOTCODE, startline, endline, 0, 0, "", FST[], nothing, AllowNest, 0, -1, nothing)
 @inline InlineComment(line) =
-    FST(INLINECOMMENT, line, line, 0, 0, "", nothing, nothing, AllowNest, 0, -1, nothing)
+FST(INLINECOMMENT, line, line, 0, 0, "", FST[], nothing, AllowNest, 0, -1, nothing)
 
 @inline must_nest(fst::FST) = fst.nest_behavior === AlwaysNest
 @inline cant_nest(fst::FST) = fst.nest_behavior === NeverNest
 @inline can_nest(fst::FST) = fst.nest_behavior === AllowNest
 
 @inline is_leaf(cst::CSTParser.EXPR) = cst.args === nothing
-@inline is_leaf(fst::FST) = fst.nodes === nothing
+@inline is_leaf(fst::FST) = fst.val !== nothing
 
 @inline is_punc(cst::CSTParser.EXPR) = CSTParser.ispunctuation(cst)
 @inline is_punc(fst::FST) = fst.typ === PUNCTUATION
