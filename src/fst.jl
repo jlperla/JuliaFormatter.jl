@@ -338,10 +338,6 @@ function is_if(cst::CSTParser.EXPR)
     return false
 end
 
-function is_conditional(cst::CSTParser.EXPR)
-    CSTParser.isconditional(cst)
-end
-
 function is_colon_call(cst::CSTParser.EXPR)
     CSTParser.isoperator(cst) && cst.val == ":" && return true
     cst.head == :call && is_colon_call(cst.args[1]) && return true
