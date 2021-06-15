@@ -248,7 +248,7 @@ function short_to_long_function_def!(fst::FST, s::State)
 
         whereop = fst[1][end]
         decl = FST(OPERATOR, -1, fst[1].startline, fst[1].endline, "::")
-        delc.opmeta = OpMeta(Tokens.DECLARATION, false)
+        decl.opmeta = OpMeta(Tokens.DECLARATION, false)
 
         # ::R where T
         add_node!(funcdef, decl, s, join_lines = true)

@@ -759,7 +759,6 @@ function p_block(ds::DefaultStyle, nodes::Vector{CSTParser.EXPR}, s::State)
             add_node!(t, n, s, join_lines = true)
         elseif CSTParser.is_comma(a) && i != length(nodes)
             add_node!(t, n, s, join_lines = true)
-            join_body && add_node!(t, Placeholder(1), s)
         else
             add_node!(t, n, s, max_padding = 0)
         end

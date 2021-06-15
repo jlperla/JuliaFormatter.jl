@@ -333,7 +333,7 @@ function is_if(cst::CSTParser.EXPR)
 end
 
 function is_conditional(cst::CSTParser.EXPR)
-    CSTParser.isconditional(x)
+    CSTParser.isconditional(cst)
 end
 
 function is_colon_call(cst::CSTParser.EXPR)
