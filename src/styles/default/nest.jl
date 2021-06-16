@@ -19,7 +19,7 @@ function nest!(
     nodes::Vector{FST},
     s::State,
     indent::Int;
-    extra_margin = 0,
+    extra_margin::Int = 0,
 )
     style = getstyle(ds)
     for (i, n) in enumerate(nodes)
@@ -40,7 +40,7 @@ nest!(
     nodes::Vector{FST},
     s::State,
     indent::Int;
-    extra_margin = 0,
+    extra_margin::Int = 0,
 ) where {S<:AbstractStyle} =
     nest!(DefaultStyle(style), nodes, s, indent, extra_margin = extra_margin)
 

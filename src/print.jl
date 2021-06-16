@@ -59,7 +59,7 @@ function print_tree(
     nodes::Vector{FST},
     s::State,
     indent::Int;
-    notcode_indent = -1,
+    notcode_indent::Int = -1,
 )
     ws = repeat(" ", max(indent, 0))
     for (i, n) in enumerate(nodes)
@@ -110,7 +110,7 @@ function print_string(io::IOBuffer, fst::FST, s::State)
     print_tree(io, fst, s)
 end
 
-function print_notcode(io::IOBuffer, fst::FST, s::State; fmttag = false)
+function print_notcode(io::IOBuffer, fst::FST, s::State; fmttag::Bool = false)
     s.on || return
     for l = fst.startline:fst.endline
         ws, v = get(s.doc.comments, l, (0, "\n"))
