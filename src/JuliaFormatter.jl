@@ -35,7 +35,10 @@ struct DefaultStyle <: AbstractStyle
 end
 DefaultStyle() = DefaultStyle(nothing)
 
-@inline getstyle(s::DefaultStyle) = s.innerstyle === nothing ? s : s.innerstyle
+@inline function getstyle(s::T) where {T<:AbstractStyle}
+    s.innerstyle === nothing ? s : s.innerstyle
+end
+
 function options(s::DefaultStyle)
     return (;
         indent = 4,

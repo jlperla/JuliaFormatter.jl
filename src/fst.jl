@@ -141,7 +141,7 @@ function FST(
         0,
         length(val),
         val,
-				FST[],
+        FST[],
         Ref(cst),
         AllowNest,
         0,
@@ -164,7 +164,7 @@ function FST(
         0,
         length(val),
         val,
-				FST[],
+        FST[],
         nothing,
         AllowNest,
         0,
@@ -202,13 +202,13 @@ end
 end
 
 @inline Newline(; length = 0, nest_behavior = AllowNest) =
-FST(NEWLINE, -1, -1, 0, length, "\n", FST[], nothing, nest_behavior, 0, -1, nothing)
+    FST(NEWLINE, -1, -1, 0, length, "\n", FST[], nothing, nest_behavior, 0, -1, nothing)
 @inline Semicolon() =
-FST(SEMICOLON, -1, -1, 0, 1, ";", FST[], nothing, AllowNest, 0, -1, nothing)
+    FST(SEMICOLON, -1, -1, 0, 1, ";", FST[], nothing, AllowNest, 0, -1, nothing)
 @inline TrailingComma() =
-FST(TRAILINGCOMMA, -1, -1, 0, 0, "", FST[], nothing, AllowNest, 0, -1, nothing)
+    FST(TRAILINGCOMMA, -1, -1, 0, 0, "", FST[], nothing, AllowNest, 0, -1, nothing)
 @inline TrailingSemicolon() =
-FST(TRAILINGSEMICOLON, -1, -1, 0, 0, "", FST[], nothing, AllowNest, 0, -1, nothing)
+    FST(TRAILINGSEMICOLON, -1, -1, 0, 0, "", FST[], nothing, AllowNest, 0, -1, nothing)
 @inline InverseTrailingSemicolon() = FST(
     INVERSETRAILINGSEMICOLON,
     -1,
@@ -216,7 +216,7 @@ FST(TRAILINGSEMICOLON, -1, -1, 0, 0, "", FST[], nothing, AllowNest, 0, -1, nothi
     0,
     1,
     ";",
-		FST[],
+    FST[],
     nothing,
     AllowNest,
     0,
@@ -224,13 +224,13 @@ FST(TRAILINGSEMICOLON, -1, -1, 0, 0, "", FST[], nothing, AllowNest, 0, -1, nothi
     nothing,
 )
 @inline Whitespace(n) =
-FST(WHITESPACE, -1, -1, 0, n, " "^n, FST[], nothing, AllowNest, 0, -1, nothing)
+    FST(WHITESPACE, -1, -1, 0, n, " "^n, FST[], nothing, AllowNest, 0, -1, nothing)
 @inline Placeholder(n) =
-FST(PLACEHOLDER, -1, -1, 0, n, " "^n, FST[], nothing, AllowNest, 0, -1, nothing)
+    FST(PLACEHOLDER, -1, -1, 0, n, " "^n, FST[], nothing, AllowNest, 0, -1, nothing)
 @inline Notcode(startline, endline) =
-FST(NOTCODE, startline, endline, 0, 0, "", FST[], nothing, AllowNest, 0, -1, nothing)
+    FST(NOTCODE, startline, endline, 0, 0, "", FST[], nothing, AllowNest, 0, -1, nothing)
 @inline InlineComment(line) =
-FST(INLINECOMMENT, line, line, 0, 0, "", FST[], nothing, AllowNest, 0, -1, nothing)
+    FST(INLINECOMMENT, line, line, 0, 0, "", FST[], nothing, AllowNest, 0, -1, nothing)
 
 @inline must_nest(fst::FST) = fst.nest_behavior === AlwaysNest
 @inline cant_nest(fst::FST) = fst.nest_behavior === NeverNest
