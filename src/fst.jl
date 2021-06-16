@@ -863,7 +863,6 @@ function remove_empty_notcode(fst::FST)::Bool
     return false
 end
 
-
 """
 `cst` is assumed to be a single child node. Returns true if the node is of the syntactic form `{...}, [...], or (...)`.
 """
