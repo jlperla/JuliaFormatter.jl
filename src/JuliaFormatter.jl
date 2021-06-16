@@ -565,20 +565,21 @@ format(path::AbstractString; options...) = format((path,); options...)
 """
     format(path, style::AbstractStyle; options...)::Bool
 """
-format(path, style::AbstractStyle; options...) = format(path; style = style, options...)
+format(path::AbstractString, style::AbstractStyle; options...) =
+    format(path; style = style, options...)
 
 """
     format(mod::Module, args...; options...)
 """
 format(mod::Module, args...; options...) = format(pkgdir(mod), args...; options...)
 
-function kwargs(dict)
+function kwargs(dict::Dict{String,Any})
     ns = (Symbol.(keys(dict))...,)
     vs = (collect(values(dict))...,)
     return pairs(NamedTuple{ns}(vs))
 end
 
-function parse_config(tomlfile)
+function parse_config(tomlfile::AbstractString)
     config_dict = parsefile(tomlfile)
     if (style = get(config_dict, "style", nothing)) !== nothing
         @assert (style == "default" || style == "yas" || style == "blue") "currently $(CONFIG_FILE_NAME) accepts only \"default\" or \"yas\" or \"blue\" for the style configuration"
