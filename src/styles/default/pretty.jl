@@ -1462,7 +1462,7 @@ function p_binaryopcall(
 
     nonest = nonest || CSTParser.is_colon(op)
 
-    if CSTParser.iscurly(cst.parent) &&
+    if CSTParser.iscurly(cst.parent::CSTParser.EXPR) &&
        (op.val == "<:" || op.val == ">:") &&
        !s.opts.whitespace_typedefs
         nospace = true
@@ -1640,7 +1640,7 @@ function p_unaryopcall(ds::DefaultStyle, cst::CSTParser.EXPR, s::State; nospace 
     t = FST(Unary, cst, nspaces(s))
     if length(cst) == 1
         if cst.head.fullspan != 0
-            add_node!(t, pretty(style, cst.head, s), s, join_lines = true)
+            add_node!(t, pretty(style, cst.head::CSTParser.EXPR, s), s, join_lines = true)
         end
         add_node!(t, pretty(style, cst[1], s), s, join_lines = true)
     else

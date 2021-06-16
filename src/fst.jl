@@ -104,7 +104,7 @@ mutable struct FST
 
     indent::Int
     len::Int
-    val::Union{Nothing,AbstractString}
+    val::Union{Nothing,String}
     nodes::Vector{FST}
     ref::Union{Nothing,Ref{CSTParser.EXPR}}
     nest_behavior::NestBehavior
@@ -250,13 +250,21 @@ end
 @inline is_comma(fst::FST) = fst.typ === TRAILINGCOMMA || (is_punc(fst) && fst.val == ",")
 @inline is_comment(fst::FST) = fst.typ === INLINECOMMENT || fst.typ === NOTCODE
 
-@inline is_circumflex_accent(x::CSTParser.EXPR) =
-    CSTParser.isoperator(x) && endswith(CSTParser.valof(x), "^")
-@inline is_fwdfwd_slash(x::CSTParser.EXPR) =
-    CSTParser.isoperator(x) && endswith(CSTParser.valof(x), "//")
+@inline function is_circumflex_accent(x::CSTParser.EXPR)::Bool
+    CSTParser.isoperator(x) || return false
+    val = CSTParser.valof(x)
+    val !== nothing || return false
+    endswith(val, "^")
+end
+@inline function is_fwdfwd_slash(x::CSTParser.EXPR)::Bool
+    CSTParser.isoperator(x) || return false
+    val = CSTParser.valof(x)
+    val !== nothing || return false
+    endswith(val, "//")
+end
 
 # TODO: fix this
-function is_multiline(fst::FST)
+function is_multiline(fst::FST)::Bool
     if fst.typ === StringN && fst.endline > fst.startline
         return true
     elseif fst.typ === Vcat && fst.endline > fst.startline
@@ -271,7 +279,7 @@ end
 
 @inline is_macrocall(fst::FST) = fst.typ === MacroCall || fst.typ === MacroBlock
 
-function is_macrodoc(cst::CSTParser.EXPR)
+function is_macrodoc(cst::CSTParser.EXPR)::Bool
     cst.head === :macrocall &&
         length(cst) == 4 &&
         CSTParser.isidentifier(cst[1]) &&
@@ -279,7 +287,7 @@ function is_macrodoc(cst::CSTParser.EXPR)
         (is_str_or_cmd(cst[3]) || is_macrostr(cst[3]))
 end
 
-function is_macrodoc(fst::FST)
+function is_macrodoc(fst::FST)::Bool
     fst.typ === GlobalRefDoc && return true
     fst.typ === MacroBlock &&
         fst[1].typ === Macroname &&
@@ -288,7 +296,7 @@ function is_macrodoc(fst::FST)
     return false
 end
 
-function is_macrostr(cst::CSTParser.EXPR)
+function is_macrostr(cst::CSTParser.EXPR)::Bool
     cst.head === :macrocall || return false
     length(cst) > 2 || return false
 
@@ -310,13 +318,13 @@ function is_macrostr(cst::CSTParser.EXPR)
     return is_str_or_cmd(cst[3])
 end
 
-function is_macrostr_identifier(cst::CSTParser.EXPR)
+function is_macrostr_identifier(cst::CSTParser.EXPR)::Bool
     CSTParser.isidentifier(cst) || return false
 
-    m = match(r"@(.*)_(str|cmd)", cst.val)
-    m !== nothing || return false
-    val = m.captures[1]
+    m = match(r"@(.*)_(str|cmd)", CSTParser.valof(cst)::String)
+    m === nothing && return false
 
+    val = m.captures[1]
     # r"hello" is parsed as @r_str"hello"
     # if it was originally r"hello" then
     # the number of bytes in the matched string (between @ and _)
@@ -326,19 +334,19 @@ function is_macrostr_identifier(cst::CSTParser.EXPR)
     ncodeunits(val) == cst.span
 end
 
-function is_call(cst::CSTParser.EXPR)
+function is_call(cst::CSTParser.EXPR)::Bool
     t = CSTParser.is_func_call(cst)
     t !== nothing && t && return is_opener(cst[2])
     return false
 end
 
-function is_if(cst::CSTParser.EXPR)
+function is_if(cst::CSTParser.EXPR)::Bool
     cst.head === :if && cst[1].head === :IF && return true
     cst.head === :elseif && cst[1].head === :ELSEIF && return true
     return false
 end
 
-function is_colon_call(cst::CSTParser.EXPR)
+function is_colon_call(cst::CSTParser.EXPR)::Bool
     CSTParser.isoperator(cst) && cst.val == ":" && return true
     cst.head == :call && is_colon_call(cst.args[1]) && return true
     return false
@@ -356,7 +364,7 @@ function is_custom_leaf(fst::FST)
         fst.typ === INVERSETRAILINGSEMICOLON
 end
 
-function is_nothing(cst::CSTParser.EXPR)
+function is_nothing(cst::CSTParser.EXPR)::Bool
     CSTParser.is_nothing(cst) && return true
     cst.val === nothing && cst.args === nothing && return true
     return false
@@ -418,12 +426,10 @@ function get_args(args::Union{Vector{Any},Vector{CSTParser.EXPR}})
     end
     args0
 end
-
-function get_args(args::Nothing)
-    return CSTParser.EXPR[]
-end
+@inline get_args(::Nothing) = CSTParser.EXPR[]
 
 @inline n_args(x) = length(get_args(x))
+@inline n_args(::Nothing) = 0
 
 function add_node!(t::FST, n::FST, s::State; join_lines = false, max_padding = -1)
     if n.typ === SEMICOLON
@@ -788,7 +794,7 @@ function is_chain(x::CSTParser.EXPR)
     CSTParser.ischainedcall(x)
 end
 
-function is_assignment(x::FST)
+function is_assignment(x::FST)::Bool
     if x.typ === Binary && is_assignment(op_kind(x))
         return true
     end
@@ -806,46 +812,6 @@ function is_assignment(x::FST)
     return false
 end
 
-is_assignment(kind::Tokens.Kind) = CSTParser.precedence(kind) == CSTParser.AssignmentOp
-function is_assignment(cst::CSTParser.EXPR)
-    op = get_binary_op(cst)
-    op === nothing && return false
-    precedence(op) == CSTParser.AssignmentOp
-end
-is_assignment(::Nothing) = false
-
-function precedence(cst::CSTParser.EXPR)
-    CSTParser.isoperator(cst) || return 0
-    val = CSTParser.isdotted(cst) ? cst.val[2:end] : cst.val
-    CSTParser.get_prec(val)
-end
-
-function is_function_or_macro_def(cst::CSTParser.EXPR)
-    CSTParser.defines_function(cst) && return true
-    cst.head === :macro && return true
-    cst.head === :where && return true
-    return false
-end
-
-function nest_block(cst::CSTParser.EXPR)
-    is_if(cst) && return true
-    cst.head === :do && return true
-    cst.head === :try && return true
-    cst.head === :for && return true
-    cst.head === :while && return true
-    cst.head === :let && return true
-    return false
-end
-
-function remove_empty_notcode(fst::FST)
-    is_iterable(fst) && return true
-    fst.typ === Binary && return true
-    fst.typ === Conditional && return true
-    fst.typ === Comparison && return true
-    fst.typ === Chain && return true
-    return false
-end
-
 function get_binary_op(cst::CSTParser.EXPR)
     if cst.head == :call
         return cst.args[1]
@@ -855,6 +821,48 @@ function get_binary_op(cst::CSTParser.EXPR)
         return cst.head
     end
 end
+
+is_assignment(kind::Tokens.Kind) = CSTParser.precedence(kind) == CSTParser.AssignmentOp
+function is_assignment(cst::CSTParser.EXPR)::Bool
+    op = get_binary_op(cst)
+    op === nothing && return false
+    precedence(op) == CSTParser.AssignmentOp
+end
+is_assignment(::Nothing) = false
+
+function precedence(cst::CSTParser.EXPR)::Int
+    CSTParser.isoperator(cst) || return 0
+    _val = CSTParser.valof(cst)
+    val = CSTParser.isdotted(cst) ? _val[2:end] : _val
+    return CSTParser.get_prec(val)
+end
+
+function is_function_or_macro_def(cst::CSTParser.EXPR)::Bool
+    CSTParser.defines_function(cst) && return true
+    cst.head === :macro && return true
+    cst.head === :where && return true
+    return false
+end
+
+function nest_block(cst::CSTParser.EXPR)::Bool
+    is_if(cst) && return true
+    cst.head === :do && return true
+    cst.head === :try && return true
+    cst.head === :for && return true
+    cst.head === :while && return true
+    cst.head === :let && return true
+    return false
+end
+
+function remove_empty_notcode(fst::FST)::Bool
+    is_iterable(fst) && return true
+    fst.typ === Binary && return true
+    fst.typ === Conditional && return true
+    fst.typ === Comparison && return true
+    fst.typ === Chain && return true
+    return false
+end
+
 
 """
 `cst` is assumed to be a single child node. Returns true if the node is of the syntactic form `{...}, [...], or (...)`.
@@ -884,17 +892,17 @@ function nest_rhs(cst::CSTParser.EXPR)::Bool
     false
 end
 
-function op_kind(cst::CSTParser.EXPR)
+function op_kind(cst::CSTParser.EXPR)::Union{Nothing,Tokens.Kind}
     if is_binary(cst) || cst.head === :comparison || is_chain(cst)
-        return tokenize(cst[2].val)
+        return tokenize(CSTParser.valof(cst[2])::String)
     elseif is_unary(cst)
         op = CSTParser.isoperator(cst[1]) ? cst[1] : cst[2]
-        return tokenize(op.val)
+        return tokenize(CSTParser.valof(op)::String)
     end
     return nothing
 end
 
-function op_kind(fst::FST)
+function op_kind(fst::FST)::Union{Nothing,Tokens.Kind}
     if fst.typ === OPERATOR
         return fst.opmeta.kind
     elseif is_opcall(fst)
@@ -934,7 +942,7 @@ var = a && b
 ```
 """
 function is_standalone_shortcircuit(cst::CSTParser.EXPR)
-    val = cst[2].val
+    val = CSTParser.valof(cst[2])
     (val == "&&" || val == "||") || return false
 
     function valid(n)
@@ -994,17 +1002,16 @@ function eq_to_in_normalization!(fst::FST, always_for_in::Bool)
 
         if always_for_in
             op.val = "in"
-            op.len = length(op.val)
+            op.len = length(op.val::String)
             return
         end
 
-        # @info "" op.val fst[end].typ op_kind(fst[end])
         if op.val == "=" && op_kind(fst[end]) !== Tokens.COLON
             op.val = "in"
-            op.len = length(op.val)
+            op.len = length(op.val::String)
         elseif op.val == "in" && op_kind(fst[end]) === Tokens.COLON
             op.val = "="
-            op.len = length(op.val)
+            op.len = length(op.val::String)
         end
     elseif fst.typ === Block || fst.typ === Brackets
         for n in fst.nodes
