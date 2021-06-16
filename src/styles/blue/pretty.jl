@@ -19,12 +19,10 @@ Configurable options with different defaults to [`DefaultStyle`](@ref) are:
 - `whitespace_in_kwargs` = false
 - `annotate_untyped_fields_with_any` = false
 """
-struct BlueStyle <: AbstractStyle
-    innerstyle::Union{Nothing,AbstractStyle}
+struct BlueStyle{S<:AbstractStyle} <: AbstractStyle
+    innerstyle::S
 end
-BlueStyle() = BlueStyle(nothing)
-
-@inline getstyle(s::BlueStyle) = s.innerstyle === nothing ? s : s.innerstyle
+BlueStyle() = BlueStyle(NothingStyle())
 
 function options(style::BlueStyle)
     return (;

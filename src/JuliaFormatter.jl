@@ -23,6 +23,17 @@ abstract type AbstractStyle end
 @inline options(s::AbstractStyle) = NamedTuple()
 
 """
+    NothingStyle
+
+!!! This style is used to signify the bottom of the style stack.
+"""
+struct NothingStyle <: AbstractStyle end
+
+@inline function getstyle(s::NothingStyle)
+    return s
+end
+
+"""
     DefaultStyle
 
 The default formatting style. See the [Style](@ref) section of the documentation
@@ -30,13 +41,13 @@ for more details.
 
 See also: [`BlueStyle`](@ref), [`YASStyle`](@ref)
 """
-struct DefaultStyle <: AbstractStyle
-    innerstyle::Union{Nothing,AbstractStyle}
+struct DefaultStyle{S<:AbstractStyle} <: AbstractStyle
+    innerstyle::S
 end
-DefaultStyle() = DefaultStyle(nothing)
+DefaultStyle() = DefaultStyle(NothingStyle())
 
-@inline function getstyle(s::T) where {T<:AbstractStyle}
-    s.innerstyle === nothing ? s : s.innerstyle
+@inline function getstyle(s::S) where {S<:AbstractStyle}
+    s.innerstyle isa NothingStyle ? s : s.innerstyle
 end
 
 function options(s::DefaultStyle)
