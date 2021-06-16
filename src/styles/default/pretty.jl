@@ -170,7 +170,7 @@ p_file(style::S, cst::CSTParser.EXPR, s::State) where {S<:AbstractStyle} =
 
 @inline function p_identifier(ds::DefaultStyle, cst::CSTParser.EXPR, s::State)
     loc = cursor_loc(s)
-    val::String = cst.val
+    val = cst.val::String
     s.offset += length(val) + (cst.fullspan - cst.span)
     FST(IDENTIFIER, loc[2], loc[1], loc[1], val)
 end
@@ -179,7 +179,7 @@ p_identifier(style::S, cst::CSTParser.EXPR, s::State) where {S<:AbstractStyle} =
 
 @inline function p_operator(ds::DefaultStyle, cst::CSTParser.EXPR, s::State)
     loc = cursor_loc(s)
-    val::String = cst.val
+    val = cst.val::String
     s.offset += length(val) + (cst.fullspan - cst.span)
 
     t = FST(OPERATOR, loc[2], loc[1], loc[1], val)
@@ -338,9 +338,10 @@ end
     from_docstring = false,
 )
     loc = cursor_loc(s)
-    val::String = cst.val
+    val = cst.val::String
 
     if !is_str_or_cmd(cst)
+        len = length(val)
         if cst.head === :FLOAT && endswith(val, "f0")
             # Float32
             val = val[1:end-2]
@@ -362,7 +363,7 @@ end
             end
         end
 
-        s.offset += length(cst.val) + (cst.fullspan - cst.span)
+        s.offset += len + (cst.fullspan - cst.span)
         return FST(LITERAL, loc[2], loc[1], loc[1], val)
     end
 
@@ -587,8 +588,9 @@ This creates problems when we format without intervention:
 """
 function p_macrostr_identifier(ds::DefaultStyle, cst::CSTParser.EXPR, s::State)
     loc = cursor_loc(s)
-    idx = findfirst(==('_'), cst.val)
-    val = cst.val[2:prevind(cst.val, idx)]
+    _val = cst.val::String
+    idx = findfirst(==('_'), _val)
+    val = _val[2:prevind(_val, idx)]
     s.offset += length(val) + (cst.fullspan - cst.span)
     return FST(IDENTIFIER, loc[2], loc[1], loc[1], val)
 end
