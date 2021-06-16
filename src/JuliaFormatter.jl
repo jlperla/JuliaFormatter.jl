@@ -342,11 +342,15 @@ end
 One of `"unix"` (normalize all `\r\n` to `\n`), `"windows"` (normalize all `\n` to `\r\n`), `"auto"` (automatically
 choose based on which line ending is more common in the file).
 """
-function format_text(text::AbstractString; style::AbstractStyle = DefaultStyle(), kwargs...)
+function format_text(
+    text::AbstractString;
+    style::AbstractStyle = DefaultStyle(),
+    @nospecialize(kwargs...)
+)
     return format_text(text, style; kwargs...)
 end
 
-function format_text(text::AbstractString, style::AbstractStyle; kwargs...)
+function format_text(text::AbstractString, style::AbstractStyle; @nospecialize(kwargs...))
     isempty(text) && return text
     opts = Options(; merge(options(style), kwargs)...)
     return format_text(text, style, opts)
