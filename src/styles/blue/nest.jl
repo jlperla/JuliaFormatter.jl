@@ -2,12 +2,12 @@ function n_tuple!(bs::BlueStyle, fst::FST, s::State)
     style = getstyle(bs)
     line_margin = s.line_offset + length(fst) + fst.extra_margin
     lidx = findlast(n -> n.typ === PLACEHOLDER, fst.nodes)
-    fidx = findfirst(n -> n.typ === PLACEHOLDER, fst.nodes)
     opener = findfirst(is_opener, fst.nodes) !== nothing
     multiline_arg = findfirst(is_block, fst.nodes) !== nothing
     multiline_arg && (fst.nest_behavior = AlwaysNest)
 
     if lidx !== nothing && (line_margin > s.opts.margin || must_nest(fst))
+        fidx = findfirst(n -> n.typ === PLACEHOLDER, fst.nodes)::Int
         args_range = fidx+1:lidx-1
         args_margin = sum(length.(fst[args_range]))
 

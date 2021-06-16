@@ -242,7 +242,7 @@ function align_conditional!(fst::FST)
 
     for (i, idx) in enumerate(colon_group.node_idxs)
         # the placeholder would be i+1 if not for a possible inline comment
-        nidx = findnext(n -> n.typ === PLACEHOLDER, nodes, idx + 1)
+        nidx = findnext(n -> n.typ === PLACEHOLDER, nodes, idx + 1)::Int
         if nodes[nidx+1].startline != nodes[nidx].startline
             nodes[nidx] = Newline(nest_behavior = AlwaysNest)
         end

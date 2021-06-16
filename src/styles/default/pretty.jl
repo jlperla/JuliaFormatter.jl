@@ -170,18 +170,20 @@ p_file(style::S, cst::CSTParser.EXPR, s::State) where {S<:AbstractStyle} =
 
 @inline function p_identifier(ds::DefaultStyle, cst::CSTParser.EXPR, s::State)
     loc = cursor_loc(s)
-    s.offset += length(cst.val) + (cst.fullspan - cst.span)
-    FST(IDENTIFIER, loc[2], loc[1], loc[1], cst.val)
+    val::String = cst.val
+    s.offset += length(val) + (cst.fullspan - cst.span)
+    FST(IDENTIFIER, loc[2], loc[1], loc[1], val)
 end
 p_identifier(style::S, cst::CSTParser.EXPR, s::State) where {S<:AbstractStyle} =
     p_identifier(DefaultStyle(style), cst, s)
 
 @inline function p_operator(ds::DefaultStyle, cst::CSTParser.EXPR, s::State)
     loc = cursor_loc(s)
-    s.offset += length(cst.val) + (cst.fullspan - cst.span)
+    val::String = cst.val
+    s.offset += length(val) + (cst.fullspan - cst.span)
 
-    t = FST(OPERATOR, loc[2], loc[1], loc[1], cst.val)
-    t.opmeta = OpMeta(tokenize(cst.val), CSTParser.isdotted(cst))
+    t = FST(OPERATOR, loc[2], loc[1], loc[1], val)
+    t.opmeta = OpMeta(tokenize(val), CSTParser.isdotted(cst))
     return t
 end
 p_operator(style::S, cst::CSTParser.EXPR, s::State) where {S<:AbstractStyle} =
@@ -190,7 +192,7 @@ p_operator(style::S, cst::CSTParser.EXPR, s::State) where {S<:AbstractStyle} =
 @inline function p_keyword(ds::DefaultStyle, cst::CSTParser.EXPR, s::State)
     loc = cursor_loc(s)
     s.offset += cst.fullspan
-    FST(KEYWORD, loc[2], loc[1], loc[1], cst.val)
+    FST(KEYWORD, loc[2], loc[1], loc[1], cst.val::String)
 end
 p_keyword(style::S, cst::CSTParser.EXPR, s::State) where {S<:AbstractStyle} =
     p_keyword(DefaultStyle(style), cst, s)
@@ -198,7 +200,7 @@ p_keyword(style::S, cst::CSTParser.EXPR, s::State) where {S<:AbstractStyle} =
 @inline function p_punctuation(ds::DefaultStyle, cst::CSTParser.EXPR, s::State)
     loc = cursor_loc(s)
     s.offset += cst.fullspan
-    FST(PUNCTUATION, loc[2], loc[1], loc[1], cst.val)
+    FST(PUNCTUATION, loc[2], loc[1], loc[1], cst.val::String)
 end
 p_punctuation(style::S, cst::CSTParser.EXPR, s::State) where {S<:AbstractStyle} =
     p_punctuation(DefaultStyle(style), cst, s)
@@ -336,14 +338,10 @@ end
     from_docstring = false,
 )
     loc = cursor_loc(s)
+    val::String = cst.val
+
     if !is_str_or_cmd(cst)
-        val = cst.val
-
-        if val === nothing
-            return FST(LITERAL, loc[2], loc[1], loc[1], "")
-        end
-
-        if cst.head === :FLOAT && endswith(cst.val, "f0")
+        if cst.head === :FLOAT && endswith(val, "f0")
             # Float32
             val = val[1:end-2]
             dotidx = findlast(c -> c == '.', val)
@@ -356,10 +354,10 @@ end
             end
             val *= "f0"
         elseif cst.head === :FLOAT
-            if endswith(cst.val, ".")
+            if endswith(val, ".")
                 # If a floating point ends in `.`, add trailing zero.
                 val *= '0'
-            elseif startswith(cst.val, ".")
+            elseif startswith(val, ".")
                 val = '0' * val
             end
         end
@@ -378,8 +376,8 @@ end
     # IDENTIFIER where as CSTParser parses it as a LITERAL.
     # An IDENTIFIER won't show up in the string literal lookup table.
     if str_info === nothing
-        s.offset += length(cst.val) + (cst.fullspan - cst.span)
-        return FST(LITERAL, loc[2], loc[1], loc[1], cst.val)
+        s.offset += length(val) + (cst.fullspan - cst.span)
+        return FST(LITERAL, loc[2], loc[1], loc[1], val)
     end
 
     startline, endline, str = str_info

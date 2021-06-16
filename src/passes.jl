@@ -419,15 +419,15 @@ function move_at_sign_to_the_end(fst::FST, s::State)
     for (i, n) in enumerate(t)
         if n.val == "@"
             continue
-        elseif n.typ === IDENTIFIER && i < length(t) && n.val[1] == '@'
-            n.val = n.val[2:end]
+        elseif n.typ === IDENTIFIER && i < length(t) && (n.val::String)[1] == '@'
+            n.val = (n.val::String)[2:end]
             n.len -= 1
             add_node!(macroname, n, s, join_lines = true)
         elseif i < length(t) || n.typ == Quotenode
             add_node!(macroname, n, s, join_lines = true)
         else
-            if n.typ === IDENTIFIER && n.val[1] != '@'
-                n.val = "@" * n.val
+            if n.typ === IDENTIFIER && (n.val::String)[1] != '@'
+                n.val = "@" * n.val::String
                 n.len += 1
                 add_node!(macroname, n, s, join_lines = true)
             else
@@ -446,8 +446,8 @@ function conditional_to_if_block!(fst::FST, s::State; top = true)
     add_node!(t, Whitespace(1), s, join_lines = true)
     add_node!(t, fst[1], s, join_lines = true)
 
-    idx1 = findfirst(n -> n.typ === OPERATOR && n.val == "?", fst.nodes)
-    idx2 = findfirst(n -> n.typ === OPERATOR && n.val == ":", fst.nodes)
+    idx1 = findfirst(n -> n.typ === OPERATOR && n.val == "?", fst.nodes)::Int
+    idx2 = findfirst(n -> n.typ === OPERATOR && n.val == ":", fst.nodes)::Int
 
     block1 = FST(Block, fst.indent + s.opts.indent)
     for n in fst.nodes[idx1+1:idx2-1]
