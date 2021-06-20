@@ -71,9 +71,10 @@ function p_curly(ys::YASStyle, cst::CSTParser.EXPR, s::State)
             add_node!(t, n, s, join_lines = true)
             add_node!(t, Placeholder(0), s)
         else
-            add_node!(t, n, s, join_lines = true)
+            add_node!(t, n, s, join_lines = n.startline == t.endline)
         end
     end
+    remove_superflous_whitespace!(t)
     t
 end
 
@@ -99,11 +100,12 @@ function p_tuple(ys::YASStyle, cst::CSTParser.EXPR, s::State)
             add_node!(t, pretty(style, a, s), s, join_lines = true)
             add_node!(t, Placeholder(1), s)
         elseif is_binary(a) && a[2].val === "="
-            add_node!(t, p_kw(style, a, s), s, join_lines = true)
+            add_node!(t, p_kw(style, a, s), s, join_lines = n.startline == t.endline)
         else
-            add_node!(t, pretty(style, a, s), s, join_lines = true)
+            add_node!(t, pretty(style, a, s), s, join_lines = n.startline == t.endline)
         end
     end
+    remove_superflous_whitespace!(t)
     t
 end
 
@@ -123,9 +125,10 @@ function p_tuple(ys::YASStyle, nodes::Vector{CSTParser.EXPR}, s::State)
             add_node!(t, n, s, join_lines = true)
             add_node!(t, Placeholder(1), s)
         else
-            add_node!(t, n, s, join_lines = true)
+            add_node!(t, n, s, join_lines = n.startline == t.endline)
         end
     end
+    remove_superflous_whitespace!(t)
     t
 end
 
@@ -150,6 +153,7 @@ end
 function p_call(ys::YASStyle, cst::CSTParser.EXPR, s::State)
     style = getstyle(ys)
     t = FST(Call, cst, nspaces(s))
+
     for (i, a) in enumerate(cst)
         n = pretty(style, a, s)
         if CSTParser.is_comma(a) && i + 1 == length(cst)
@@ -158,13 +162,17 @@ function p_call(ys::YASStyle, cst::CSTParser.EXPR, s::State)
             add_node!(t, n, s, join_lines = true)
             add_node!(t, Placeholder(1), s)
         else
-            add_node!(t, n, s, join_lines = true)
+            add_node!(t, n, s, join_lines = t.endline == n.startline)
         end
     end
+
     if !parent_is(cst, is_function_or_macro_def)
         separate_kwargs_with_semicolon!(t)
     end
-    t
+
+    remove_superflous_whitespace!(t)
+
+    return t
 end
 function p_vect(ys::YASStyle, cst::CSTParser.EXPR, s::State)
     t = p_call(ys, cst, s)
@@ -194,6 +202,7 @@ function p_vcat(ys::YASStyle, cst::CSTParser.EXPR, s::State)
             add_node!(t, n, s, join_lines = true)
         end
     end
+    remove_superflous_whitespace!(t)
     t
 end
 function p_typedvcat(ys::YASStyle, cst::CSTParser.EXPR, s::State)
@@ -213,11 +222,12 @@ function p_ref(ys::YASStyle, cst::CSTParser.EXPR, s::State)
             add_node!(t, Placeholder(1), s)
         elseif is_binary(a) || is_chain(a) || a.head === :brackets || a.head === :comparison
             n = pretty(style, a, s, nonest = true, nospace = nospace)
-            add_node!(t, n, s, join_lines = true)
+            add_node!(t, n, s, join_lines = t.endline == n.startline)
         else
-            add_node!(t, pretty(style, a, s), s, join_lines = true)
+            add_node!(t, pretty(style, a, s), s, join_lines = t.endline == n.startline)
         end
     end
+    remove_superflous_whitespace!(t)
     t
 end
 
@@ -251,19 +261,63 @@ function p_typedcomprehension(ys::YASStyle, cst::CSTParser.EXPR, s::State)
 end
 
 function p_macrocall(ys::YASStyle, cst::CSTParser.EXPR, s::State)
-    style = getstyle(ys)
-    fst = p_macrocall(DefaultStyle(style), cst, s)
-    fst.typ == MacroCall || return fst
-    is_closer(cst[end]) || return fst
+    style = getstyle(ds)
+    t = FST(MacroCall, cst, nspaces(s))
 
-    # remove initial and last placeholders
-    # @call(PLACEHOLDER, args..., PLACEHOLDER) -> @call(args...)
-    idx = findfirst(n -> n.typ === PLACEHOLDER, fst.nodes)
-    idx !== nothing && (fst[idx] = Whitespace(0))
-    idx = findlast(n -> n.typ === PLACEHOLDER, fst.nodes)
-    idx !== nothing && (fst[idx] = Whitespace(0))
+    args = get_args(cst)
+    nest = length(args) > 0 && !(length(args) == 1 && unnestable_node(args[1]))
+    has_closer = is_closer(cst[end])
 
-    return fst
+    !has_closer && (t.typ = MacroBlock)
+
+    # same as CSTParser.Call but whitespace sensitive
+    for (i, a) in enumerate(cst)
+        if CSTParser.is_nothing(a)
+            s.offset += a.fullspan
+            continue
+        end
+
+        n = pretty(style, a, s)
+        if CSTParser.ismacroname(a)
+            if has_closer || length(args) == 0
+                add_node!(t, n, s, join_lines = true)
+            else
+                add_node!(t, n, s, join_lines = true)
+                add_node!(t, Whitespace(1), s)
+            end
+        elseif is_opener(n) && nest
+            add_node!(t, n, s, join_lines = true)
+        elseif is_closer(n) && nest
+            add_node!(t, n, s, join_lines = true)
+        elseif CSTParser.is_comma(a) && i < length(cst) && !is_punc(cst[i+1])
+            add_node!(t, n, s, join_lines = true)
+            add_node!(t, Placeholder(1), s)
+        elseif t.typ === MacroBlock
+            if has_closer
+                add_node!(t, n, s, join_lines = n.startline == t.endline)
+                if i < length(cst) - 1 && cst[i+1].head != :parameters
+                    add_node!(t, Whitespace(1), s)
+                end
+            else
+                padding = is_block(n) ? 0 : -1
+                add_node!(t, n, s, join_lines = true, max_padding = padding)
+                i < length(cst) && add_node!(t, Whitespace(1), s)
+            end
+        else
+            if has_closer
+                add_node!(t, n, s, join_lines = n.startline == t.endline)
+            else
+                padding = is_block(n) ? 0 : -1
+                add_node!(t, n, s, join_lines = true, max_padding = padding)
+            end
+        end
+    end
+    # move placement of @ to the end
+    #
+    # @Module.macro -> Module.@macro
+    t[1] = move_at_sign_to_the_end(t[1], s)
+    remove_superflous_whitespace!(t)
+    t
 end
 
 function p_whereopcall(ys::YASStyle, cst::CSTParser.EXPR, s::State)
@@ -296,7 +350,7 @@ function p_whereopcall(ys::YASStyle, cst::CSTParser.EXPR, s::State)
             add_node!(t, n, s, join_lines = true)
             add_node!(t, Placeholder(0), s)
         else
-            add_node!(t, n, s, join_lines = true)
+            add_node!(t, n, s, join_lines = t.endline == n.startline)
         end
     end
 
@@ -304,6 +358,7 @@ function p_whereopcall(ys::YASStyle, cst::CSTParser.EXPR, s::State)
         brace = FST(PUNCTUATION, -1, t.endline, t.endline, "}")
         add_node!(t, brace, s, join_lines = true)
     end
+    remove_superflous_whitespace!(t)
     t
 end
 
@@ -342,7 +397,7 @@ function p_generator(ys::YASStyle, cst::CSTParser.EXPR, s::State)
                 any(b -> b.head === :FOR, tupargs) && continue
 
                 tup = p_tuple(style, tupargs, s)
-                add_node!(t, tup, s, join_lines = true)
+                add_node!(t, tup, s, join_lines = t.endline == n.startline)
 
                 if has_for_kw
                     for nn in tup.nodes
@@ -355,12 +410,12 @@ function p_generator(ys::YASStyle, cst::CSTParser.EXPR, s::State)
             add_node!(t, n, s, join_lines = true)
             add_node!(t, Placeholder(1), s)
         else
-            add_node!(t, n, s, join_lines = true)
+            add_node!(t, n, s, join_lines = t.endline == n.startline)
         end
 
         has_for_kw && eq_to_in_normalization!(n, s.opts.always_for_in)
     end
-
+    remove_superflous_whitespace!(t)
     t
 end
 
