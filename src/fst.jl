@@ -106,7 +106,7 @@ mutable struct FST
 
     indent::Int
     len::Int
-    val::Union{Nothing,AbstractString}
+    val::Union{Nothing,String}
     nodes::Vector{FST}
     ref::Union{Nothing,Ref{CSTParser.EXPR}}
     nest_behavior::NestBehavior
