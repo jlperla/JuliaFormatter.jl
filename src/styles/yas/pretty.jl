@@ -100,9 +100,11 @@ function p_tuple(ys::YASStyle, cst::CSTParser.EXPR, s::State)
             add_node!(t, pretty(style, a, s), s, join_lines = true)
             add_node!(t, Placeholder(1), s)
         elseif is_binary(a) && a[2].val === "="
-            add_node!(t, p_kw(style, a, s), s, join_lines = n.startline == t.endline)
+            n = p_kw(style, a, s)
+            add_node!(t, n, s, join_lines = n.startline == t.endline)
         else
-            add_node!(t, pretty(style, a, s), s, join_lines = n.startline == t.endline)
+	    n = pretty(style, a, s)
+            add_node!(t, n, s, join_lines = n.startline == t.endline)
         end
     end
     remove_superflous_whitespace!(t)
@@ -224,7 +226,8 @@ function p_ref(ys::YASStyle, cst::CSTParser.EXPR, s::State)
             n = pretty(style, a, s, nonest = true, nospace = nospace)
             add_node!(t, n, s, join_lines = t.endline == n.startline)
         else
-            add_node!(t, pretty(style, a, s), s, join_lines = t.endline == n.startline)
+		n = pretty(style, a, s)
+            add_node!(t, n, s, join_lines = t.endline == n.startline)
         end
     end
     remove_superflous_whitespace!(t)
@@ -261,7 +264,7 @@ function p_typedcomprehension(ys::YASStyle, cst::CSTParser.EXPR, s::State)
 end
 
 function p_macrocall(ys::YASStyle, cst::CSTParser.EXPR, s::State)
-    style = getstyle(ds)
+    style = getstyle(ys)
     t = FST(MacroCall, cst, nspaces(s))
 
     args = get_args(cst)
