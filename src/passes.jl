@@ -553,7 +553,7 @@ end
 """
     remove_superflous_whitespace!(fst::FST)
 
-Soft deletes whitespace that's directly followed by a `NEWLINE` or `INLINECOMMENT` node.
+Soft deletes `WHITESPACE` or `PLACEHOLDER` that's directly followed by a `NEWLINE` or `INLINECOMMENT` node.
 """
 function remove_superflous_whitespace!(fst::FST)
     is_leaf(fst) && return
@@ -562,11 +562,7 @@ function remove_superflous_whitespace!(fst::FST)
            i < length(fst.nodes) &&
            (fst[i+1].typ === NEWLINE || fst[i+1].typ === INLINECOMMENT)
 
-            if n.typ === WHITESPACE 
-                fst[i] = Whitespace(0)
-            else
-                fst[i] = Placeholder(0)
-            end
+        fst[i] = Whitespace(0)
         end
     end
 end
