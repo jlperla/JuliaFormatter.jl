@@ -182,6 +182,13 @@ function p_vect(ys::YASStyle, cst::CSTParser.EXPR, s::State)
     t
 end
 
+
+function p_parameters(ys::YASStyle, cst::CSTParser.EXPR, s::State)
+    t = p_tuple(ys, cst, s)
+    t.typ = Parameters
+    t
+end
+
 function p_vcat(ys::YASStyle, cst::CSTParser.EXPR, s::State)
     style = getstyle(ys)
     t = FST(Vcat, nspaces(s))
